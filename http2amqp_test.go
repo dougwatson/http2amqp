@@ -1,3 +1,4 @@
+// Copyright (c) 2015 by Doug Watson. MIT permissive licence - Contact info at http://github.com/dougwatson/http2amqp
 package main
 
 import (
