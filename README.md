@@ -39,3 +39,18 @@ rabbitmqctl  list_permissions -p TEST
 rabbitmqctl  list_bindings -p TEST
 rabbitmqctl  list_queues -p TEST
 ```
+##To test:
+```bash
+nohup ./http2amqp &
+curl localhost:8080/AQUEUE/hello1
+curl localhost:8080/AQUEUE/hello2
+curl localhost:8080/AQUEUE/hello3
+```
+
+##Verify:
+```bash
+_tools/consumer/consumer
+got Hello1
+got hello2
+got hello3
+```
