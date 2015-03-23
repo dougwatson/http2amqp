@@ -19,13 +19,14 @@ import (
 	"github.com/streadway/amqp"
 )
 
-var uri string
+var uri, httpPort string
 var logFile *os.File
 var queueMap = make(map[string]string)
 var mutex = &sync.Mutex{}
 
 func init() {
 	flag.StringVar(&uri, "uri", "amqp://guest:guest@localhost:5672/TEST", "The address for the amqp server (including vhost)")
+	flag.StringVar(&httpPort, "httpPort", "8080", "The listen port for the https GET requests")
 }
 
 func main() {
@@ -43,7 +44,7 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		staticHandler(w, r, lines)
 	})
-	http.ListenAndServe(":8080", nil) //address= ":8080"
+	http.ListenAndServe(":"+httpPort, nil) //address= ":8080"
 }
 
 func staticHandler(w http.ResponseWriter, req *http.Request, lines chan string) {

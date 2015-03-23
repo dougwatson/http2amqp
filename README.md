@@ -4,8 +4,13 @@ http2amqp
 ```bash
 $ ./http2amqp -h
 Usage of ./http2amqp:
+  -httpPort="8080": The listen port for the https GET requests
   -uri="amqp://guest:guest@localhost:5672/TEST": Address for the amqp or rabbitmq server (including vhost)
   ```
+## Goals
+Allows a stateless service (like a php page) to make fast queue inserts into an AMQP queue without the overhead of re-establishing the connection.
+
+Supports auto-reconnect and re-synchronization of client and server.
 
 ##RabbitMQ installation
 For Mac:
