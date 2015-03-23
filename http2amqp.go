@@ -25,7 +25,7 @@ var queueMap = make(map[string]string)
 var mutex = &sync.Mutex{}
 
 func init() {
-	flag.StringVar(&uri, "uri", "amqp://guest:guest@localhost:5672/TEST", "The address for the amqp or rabbitmq server (including vhost)")
+	flag.StringVar(&uri, "uri", "amqp://guest:guest@localhost:5672/TEST", "The address for the amqp server (including vhost)")
 }
 
 func main() {
