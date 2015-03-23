@@ -8,12 +8,16 @@ Usage of ./http2amqp:
   ```
 
 #Installation
-*For Mac: brew install rabbitmq
-
-*Other OS: https://www.rabbitmq.com/releases/rabbitmq-server/v3.4.4/rabbitmq-server-mac-standalone-3.4.4.tar.gz
+*For Mac:
+```bash
+brew install rabbitmq
+```
+*Other OS, install from source: https://www.rabbitmq.com/releases/rabbitmq-server/v3.4.4/rabbitmq-server-mac-standalone-3.4.4.tar.gz
 
 #Startup rabbitmq:
+```bash
 nohup rabbitmq-server &
+```
 
 #Define your message Queue:
 
