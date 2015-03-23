@@ -8,7 +8,7 @@ Usage of ./http2amqp:
   ```
 
 ##RabbitMQ installation
-*For Mac:
+For Mac:
 ```bash
 brew install rabbitmq
 ```
