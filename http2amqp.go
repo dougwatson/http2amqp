@@ -17,9 +17,10 @@ import (
 	"time"
 
 	"github.com/streadway/amqp"
+	"log"
 )
 
-var uri, httpPort string
+var uri, httpPort, logFilePath string
 var logFile *os.File
 var queueMap = make(map[string]string)
 var mutex = &sync.Mutex{}
@@ -27,11 +28,12 @@ var mutex = &sync.Mutex{}
 func init() {
 	flag.StringVar(&uri, "uri", "amqp://guest:guest@localhost:5672/TEST", "The address for the amqp server (including vhost)")
 	flag.StringVar(&httpPort, "httpPort", "8080", "The listen port for the https GET requests")
+	flag.StringVar(&logFilePath, "logFilePath", "/var/log/http2amqp.log", "Set path to get log information");
 }
 
 func main() {
 	flag.Parse()
-	logFile, err := os.OpenFile("http2amqp.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	logFile, err := os.OpenFile(logFilePath, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
 		fmt.Printf("Log error: %v\n", err)
 		os.Exit(1)
@@ -39,6 +41,7 @@ func main() {
 	defer logFile.Close()
 	myWriter := bufio.NewWriter(logFile)
 	fmt.Fprintf(myWriter, "%v startup uri=%s\n", time.Now(), uri)
+	log.Printf("%v startup uri=%s\n", time.Now(), uri)
 	myWriter.Flush()
 	lines := writeRabbit(uri, myWriter) //read device requests rabbitmq o
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -75,6 +78,7 @@ func webReply(result string, w http.ResponseWriter) {
 	}
 	w.WriteHeader(statusCode)
 	fmt.Fprintf(w, statusMessage)
+	log.Printf(statusMessage, w)
 }
 func parseRequest(req *http.Request) string {
 	urlPath := req.URL.Path[len("/"):] //take everything after the http://localhost:8080/ (it gets the queue name)
@@ -91,7 +95,9 @@ func writeRabbit(amqpURI string, myWriter *bufio.Writer) chan string {
 			conn, err1 := amqp.Dial(amqpURI)
 			if err1 != nil {
 				fmt.Printf("%v err1=%v\n", time.Now(), err1)
+				log.Printf("%v err1=%v\n", time.Now(), err1)
 				fmt.Fprintf(myWriter, "%v err1=%v\n", time.Now(), err1)
+				log.Printf("%v err1=%v\n", time.Now(), err1)
 				time.Sleep(time.Second)
 				myWriter.Flush()
 				continue
@@ -99,10 +105,12 @@ func writeRabbit(amqpURI string, myWriter *bufio.Writer) chan string {
 			channel, err2 := conn.Channel()
 			if err2 != nil {
 				fmt.Fprintf(myWriter, "%v err2=%v\n", time.Now(), err2)
+				log.Printf("%v err2=%v\n", time.Now(), err2)
 			}
 			i := 0
 			go func() {
 				fmt.Fprintf(myWriter, "%v %d %d closing (will reopen): %s\n", time.Now(), connectionAttempts, i, <-conn.NotifyClose(make(chan *amqp.Error)))
+				log.Printf("%v %d %d closing (will reopen): %s\n", time.Now(), connectionAttempts, i, <-conn.NotifyClose(make(chan *amqp.Error)))
 			}()
 
 			myWriter.Flush()
@@ -116,6 +124,7 @@ func writeRabbit(amqpURI string, myWriter *bufio.Writer) chan string {
 				urlPath := strings.SplitN(line, "/", 2) //split into 2 parts- queueName and Message
 				if len(urlPath) < 2 {
 					fmt.Fprintf(myWriter, "%v %d %d Skip this message b/c it is missing a QUEUE name on the URL or a message body. count=%d line=%v\n", time.Now(), connectionAttempts, i, len(urlPath), line)
+					log.Printf("%v %d %d Skip this message b/c it is missing a QUEUE name on the URL or a message body. count=%d line=%v\n", time.Now(), connectionAttempts, i, len(urlPath), line)
 					myWriter.Flush()
 					lines <- "skip"
 					continue
@@ -133,6 +142,7 @@ func writeRabbit(amqpURI string, myWriter *bufio.Writer) chan string {
 						result = "BAD_QUEUE_NAME|400"
 						lines <- result
 						fmt.Fprintf(myWriter, "%v %d %d %s/%db %s %.6f\n", time.Now(), connectionAttempts, i, queue, len(message), result, 1.0)
+						log.Printf("%v %d %d %s/%db %s %.6f\n", time.Now(), connectionAttempts, i, queue, len(message), result, 1.0)
 						break
 					}
 
@@ -156,6 +166,7 @@ func writeRabbit(amqpURI string, myWriter *bufio.Writer) chan string {
 					result = "NETWORK_ERROR|502"
 					lines <- result
 					fmt.Fprintf(logFile, "%v %d %d \nerr3 saw a network error=%v\n", time.Now(), connectionAttempts, i, err3)
+					log.Printf("%v %d %d \nerr3 saw a network error=%v\n", time.Now(), connectionAttempts, i, err3)
 					myWriter.Flush()
 					//TODO - we should put the message back onto the channel since the publish failed
 					break //probably the connection broke due to a network issue, so break out of this loop so it will re-connect
@@ -165,6 +176,7 @@ func writeRabbit(amqpURI string, myWriter *bufio.Writer) chan string {
 				lines <- result
 				duration := (time.Since(startTime)).Seconds()
 				fmt.Fprintf(myWriter, "%v %d %d %s/%db %s %.6f\n", time.Now(), connectionAttempts, i, queue, len(message), result, duration)
+				log.Printf("%v %d %d %s/%db %s %.6f\n", time.Now(), connectionAttempts, i, queue, len(message), result, duration)
 				if result != "SENT|200" {
 					break
 				}
